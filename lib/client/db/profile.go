@@ -40,6 +40,10 @@ import (
 
 // Add updates database connection profile file.
 func Add(tc *client.TeleportClient, db tlsca.RouteToDatabase, clientProfile client.ProfileStatus, quiet bool) error {
+	// TODO(r0mant): Fix this.
+	if db.Protocol == defaults.ProtocolMongo {
+		return nil
+	}
 	profileFile, err := load(db)
 	if err != nil {
 		return trace.Wrap(err)

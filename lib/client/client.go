@@ -293,7 +293,13 @@ func (proxy *ProxyClient) reissueUserCerts(ctx context.Context, cachePolicy Cert
 	case proto.UserCertsRequest_App:
 		key.AppTLSCerts[params.RouteToApp.Name] = certs.TLS
 	case proto.UserCertsRequest_Database:
-		key.DBTLSCerts[params.RouteToDatabase.ServiceName] = certs.TLS
+		switch params.RouteToDatabase.Protocol {
+		case defaults.ProtocolMongo:
+			// MongoDB expects certificate and key pair in the same pem file.
+			key.DBTLSCerts[params.RouteToDatabase.ServiceName] = append(certs.TLS, key.Priv...)
+		default:
+			key.DBTLSCerts[params.RouteToDatabase.ServiceName] = certs.TLS
+		}
 	case proto.UserCertsRequest_Kubernetes:
 		key.KubeTLSCerts[params.KubernetesCluster] = certs.TLS
 	}
