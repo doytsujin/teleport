@@ -140,6 +140,9 @@ func Run(options Options) (executedCommand string, conf *service.Config) {
 	start.Flag("db-name",
 		"Name of the proxied database.").
 		StringVar(&ccf.DatabaseName)
+	start.Flag("db-description",
+		"Description of the proxied database.").
+		StringVar(&ccf.DatabaseDescription)
 	start.Flag("db-protocol",
 		fmt.Sprintf("Proxied database protocol. Supported are: %v.", defaults.DatabaseProtocols)).
 		StringVar(&ccf.DatabaseProtocol)
@@ -150,8 +153,17 @@ func Run(options Options) (executedCommand string, conf *service.Config) {
 		"Database CA certificate path.").
 		StringVar(&ccf.DatabaseCACertFile)
 	start.Flag("db-aws-region",
-		"AWS region RDS/Aurora database instance is running in.").
+		"AWS region RDS, Aurora or Redshift database instance is running in.").
 		StringVar(&ccf.DatabaseAWSRegion)
+	start.Flag("db-aws-redshift-cluster-id",
+		"Redshift database cluster identifier.").
+		StringVar(&ccf.DatabaseAWSRedshiftClusterID)
+	start.Flag("db-gcp-project-id",
+		"GCP Cloud SQL project identifier.").
+		StringVar(&ccf.DatabaseGCPProjectID)
+	start.Flag("db-gcp-instance-id",
+		"GCP Cloud SQL instance identifier.").
+		StringVar(&ccf.DatabaseGCPInstanceID)
 
 	// define start's usage info (we use kingpin's "alias" field for this)
 	start.Alias(usageNotes + usageExamples)
