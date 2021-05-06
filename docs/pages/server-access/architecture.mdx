@@ -1,0 +1,24 @@
+---
+title: Teleport Server Access Architecture Overview | Teleport Docs
+description: Teleport Server Access architecture overview.
+h1: Teleport Server Access
+---
+
+This document provides an overview of key Teleport Server Access architecture features and concepts. 
+
+## SSH Bastion Pattern
+
+Teleport Server Access helps implementing the increasingly popular SSH best-practice *Bastion Pattern*.
+
+## Events
+
+### Defining Events
+
+Teleport admin's can further define [Events](../../admin-guide.mdx#events) to organize and trigger sending session recordings to customizable storage back-ends:
+
+1. All `session.start` events could be stored on AWS S3.
+2. All `exec` events could be stored in a subdirectory on AWS S3 specific to remote commands.
+
+This makes it easier to manage, group, and analyze sessions.
+
+We recommend reading through the [Architecture documentation](../../architecture/authentication.mdx#audit-log) to plan out how to best implement sessions and events for your needs.
