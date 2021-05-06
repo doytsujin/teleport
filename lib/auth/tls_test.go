@@ -2376,6 +2376,8 @@ func (s *TLSSuite) TestCertificateFormat(c *check.C) {
 // TestClusterConfigContext checks that the cluster configuration gets passed
 // along in the context and permissions get updated accordingly.
 func (s *TLSSuite) TestClusterConfigContext(c *check.C) {
+	ctx := context.Background()
+
 	proxy, err := s.server.NewClient(TestBuiltin(teleport.RoleProxy))
 	c.Assert(err, check.IsNil)
 
@@ -2390,11 +2392,11 @@ func (s *TLSSuite) TestClusterConfigContext(c *check.C) {
 	fixtures.ExpectAccessDenied(c, err)
 
 	// update cluster config to record at the proxy
-	clusterConfig, err := services.NewClusterConfig(services.ClusterConfigSpecV3{
-		SessionRecording: services.RecordAtProxy,
+	recConfig, err := types.NewSessionRecordingConfig(types.SessionRecordingConfigSpecV2{
+		Mode: services.RecordAtProxy,
 	})
 	c.Assert(err, check.IsNil)
-	err = s.server.Auth().SetClusterConfig(clusterConfig)
+	err = s.server.Auth().SetSessionRecordingConfig(ctx, recConfig)
 	c.Assert(err, check.IsNil)
 
 	// try and generate a host cert, now the proxy should be able to generate a
@@ -3115,9 +3117,8 @@ func (s *TLSSuite) TestEventsClusterConfig(c *check.C) {
 		},
 	})
 
-	// update cluster config to record at the proxy
+	// update cluster config
 	clusterConfig, err := services.NewClusterConfig(services.ClusterConfigSpecV3{
-		SessionRecording: services.RecordAtProxy,
 		Audit: services.AuditConfig{
 			AuditEventsURI: []string{"dynamodb://audit_table_name", "file:///home/log"},
 		},

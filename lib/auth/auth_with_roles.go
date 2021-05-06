@@ -2914,6 +2914,30 @@ func (a *ServerWithRoles) IsMFARequired(ctx context.Context, req *proto.IsMFAReq
 	return a.authServer.isMFARequired(ctx, a.context.Checker, req)
 }
 
+// GetSessionRecordingConfig gets session recording configuration.
+func (a *ServerWithRoles) GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error) {
+	if err := a.action(defaults.Namespace, types.KindSessionRecordingConfig, types.VerbRead); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return a.authServer.GetSessionRecordingConfig(ctx, opts...)
+}
+
+// SetSessionRecordingConfig sets session recording configuration.
+func (a *ServerWithRoles) SetSessionRecordingConfig(ctx context.Context, recConfig types.SessionRecordingConfig) error {
+	if err := a.action(defaults.Namespace, services.KindClusterConfig, services.VerbCreate); err != nil {
+		return trace.Wrap(err)
+	}
+	if err := a.action(defaults.Namespace, services.KindClusterConfig, services.VerbUpdate); err != nil {
+		return trace.Wrap(err)
+	}
+	return a.authServer.SetSessionRecordingConfig(ctx, recConfig)
+}
+
+// DeleteSessionRecordingConfig not implemented: can only be called locally.
+func (a *ServerWithRoles) DeleteSessionRecordingConfig(ctx context.Context) error {
+	return trace.NotImplemented(notImplementedMessage)
+}
+
 // NewAdminAuthServer returns auth server authorized as admin,
 // used for auth server cached access
 func NewAdminAuthServer(authServer *Server, sessions session.Service, alog events.IAuditLog) (ClientI, error) {

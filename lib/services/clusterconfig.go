@@ -35,9 +35,7 @@ func DefaultClusterConfig() ClusterConfig {
 			Namespace: defaults.Namespace,
 		},
 		Spec: ClusterConfigSpecV3{
-			SessionRecording:    RecordAtNode,
-			ProxyChecksHostKeys: HostKeyCheckYes,
-			LocalAuth:           NewBool(true),
+			LocalAuth: NewBool(true),
 		},
 	}
 }

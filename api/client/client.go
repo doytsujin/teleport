@@ -1316,3 +1316,27 @@ func (c *Client) SetClusterNetworkingConfig(ctx context.Context, netConfig types
 func (c *Client) DeleteClusterNetworkingConfig(ctx context.Context) error {
 	return trace.NotImplemented(notImplementedMessage)
 }
+
+// GetSessionRecordingConfig gets session recording configuration.
+func (c *Client) GetSessionRecordingConfig(ctx context.Context) (types.SessionRecordingConfig, error) {
+	resp, err := c.grpc.GetSessionRecordingConfig(ctx, &empty.Empty{}, c.callOpts...)
+	if err != nil {
+		return nil, trail.FromGRPC(err)
+	}
+	return resp, nil
+}
+
+// SetSessionRecordingConfig sets session recording configuration.
+func (c *Client) SetSessionRecordingConfig(ctx context.Context, recConfig types.SessionRecordingConfig) error {
+	recConfigV2, ok := recConfig.(*types.SessionRecordingConfigV2)
+	if !ok {
+		return trace.BadParameter("invalid type %T", recConfig)
+	}
+	_, err := c.grpc.SetSessionRecordingConfig(ctx, recConfigV2, c.callOpts...)
+	return trail.FromGRPC(err)
+}
+
+// DeleteSessionRecordingConfig not implemented: can only be called locally.
+func (c *Client) DeleteSessionRecordingConfig(ctx context.Context) error {
+	return trace.NotImplemented(notImplementedMessage)
+}

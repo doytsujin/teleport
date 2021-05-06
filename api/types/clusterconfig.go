@@ -18,11 +18,9 @@ package types
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gravitational/teleport/api/defaults"
-	"github.com/gravitational/teleport/api/utils"
 
 	"github.com/gravitational/trace"
 )
@@ -33,23 +31,11 @@ type ClusterConfig interface {
 	// Resource provides common resource properties.
 	Resource
 
-	// GetSessionRecording gets where the session is being recorded.
-	GetSessionRecording() string
-
-	// SetSessionRecording sets where the session is recorded.
-	SetSessionRecording(string)
-
 	// GetClusterID returns the unique cluster ID
 	GetClusterID() string
 
 	// SetClusterID sets the cluster ID
 	SetClusterID(string)
-
-	// GetProxyChecksHostKeys sets if the proxy will check host keys.
-	GetProxyChecksHostKeys() string
-
-	// SetProxyChecksHostKeys gets if the proxy will check host keys.
-	SetProxyChecksHostKeys(string)
 
 	// CheckAndSetDefaults checks and set default values for missing fields.
 	CheckAndSetDefaults() error
@@ -83,6 +69,19 @@ type ClusterConfig interface {
 	// SetNetworkingConfig sets embedded networking configuration.
 	// DELETE IN 8.0.0
 	SetNetworkingConfig(ClusterNetworkingConfig) error
+
+	// HasSessionRecordingConfig returns true if embedded session recording
+	// configuration is set.
+	// DELETE IN 8.0.0
+	HasSessionRecordingConfig() bool
+
+	// GetSessionRecordingConfig returns embedded session recording configuration.
+	// DELETE IN 8.0.0
+	GetSessionRecordingConfig() (SessionRecordingConfig, error)
+
+	// SetSessionRecordingConfig sets embedded session recording configuration.
+	// DELETE IN 8.0.0
+	SetSessionRecordingConfig(SessionRecordingConfig) error
 
 	// Copy creates a copy of the resource and returns it.
 	Copy() ClusterConfig
@@ -168,16 +167,6 @@ func (c *ClusterConfigV3) GetMetadata() Metadata {
 	return c.Metadata
 }
 
-// GetSessionRecording gets the cluster's SessionRecording
-func (c *ClusterConfigV3) GetSessionRecording() string {
-	return c.Spec.SessionRecording
-}
-
-// SetSessionRecording sets the cluster's SessionRecording
-func (c *ClusterConfigV3) SetSessionRecording(s string) {
-	c.Spec.SessionRecording = s
-}
-
 // GetClusterID returns the unique cluster ID
 func (c *ClusterConfigV3) GetClusterID() string {
 	return c.Spec.ClusterID
@@ -186,16 +175,6 @@ func (c *ClusterConfigV3) GetClusterID() string {
 // SetClusterID sets the cluster ID
 func (c *ClusterConfigV3) SetClusterID(id string) {
 	c.Spec.ClusterID = id
-}
-
-// GetProxyChecksHostKeys sets if the proxy will check host keys.
-func (c *ClusterConfigV3) GetProxyChecksHostKeys() string {
-	return c.Spec.ProxyChecksHostKeys
-}
-
-// SetProxyChecksHostKeys sets if the proxy will check host keys.
-func (c *ClusterConfigV3) SetProxyChecksHostKeys(t string) {
-	c.Spec.ProxyChecksHostKeys = t
 }
 
 // GetAuditConfig returns audit settings
@@ -231,31 +210,7 @@ func (c *ClusterConfigV3) SetLocalAuth(b bool) {
 // CheckAndSetDefaults checks validity of all parameters and sets defaults.
 func (c *ClusterConfigV3) CheckAndSetDefaults() error {
 	// make sure we have defaults for all metadata fields
-	err := c.Metadata.CheckAndSetDefaults()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	if c.Spec.SessionRecording == "" {
-		c.Spec.SessionRecording = RecordAtNode
-	}
-	if c.Spec.ProxyChecksHostKeys == "" {
-		c.Spec.ProxyChecksHostKeys = HostKeyCheckYes
-	}
-
-	// check if the recording type is valid
-	all := []string{RecordAtNode, RecordAtProxy, RecordAtNodeSync, RecordAtProxySync, RecordOff}
-	if !utils.SliceContainsStr(all, c.Spec.SessionRecording) {
-		return trace.BadParameter("session_recording must either be: %v", strings.Join(all, ","))
-	}
-
-	// check if host key checking mode is valid
-	all = []string{HostKeyCheckYes, HostKeyCheckNo}
-	if !utils.SliceContainsStr(all, c.Spec.ProxyChecksHostKeys) {
-		return trace.BadParameter("proxy_checks_host_keys must be one of: %v", strings.Join(all, ","))
-	}
-
-	return nil
+	return trace.Wrap(c.Metadata.CheckAndSetDefaults())
 }
 
 // HasNetworkingConfig returns true if embedded networking configuration is set.
@@ -284,6 +239,35 @@ func (c *ClusterConfigV3) SetNetworkingConfig(netConfig ClusterNetworkingConfig)
 	return nil
 }
 
+// HasSessionRecordingConfig returns true if embedded session recording
+// configuration is set.
+// DELETE IN 8.0.0
+func (c *ClusterConfigV3) HasSessionRecordingConfig() bool {
+	return c.Spec.LegacySessionRecordingConfigSpec != nil
+}
+
+// GetSessionRecordingConfig returns embedded session recording configuration.
+// DELETE IN 8.0.0
+func (c *ClusterConfigV3) GetSessionRecordingConfig() (SessionRecordingConfig, error) {
+	if c.Spec.LegacySessionRecordingConfigSpec == nil {
+		return nil, trace.BadParameter("SessionRecordingConfigSpec is not set")
+	}
+	recordingSpec := SessionRecordingConfigSpecV2(*c.Spec.LegacySessionRecordingConfigSpec)
+	return NewSessionRecordingConfig(recordingSpec)
+}
+
+// SetSessionRecordingConfig sets embedded session recording configuration.
+// DELETE IN 8.0.0
+func (c *ClusterConfigV3) SetSessionRecordingConfig(recConfig SessionRecordingConfig) error {
+	recConfigV2, ok := recConfig.(*SessionRecordingConfigV2)
+	if !ok {
+		return trace.BadParameter("unexpected type %T", recConfig)
+	}
+	legacySpec := LegacySessionRecordingConfigSpec(recConfigV2.Spec)
+	c.Spec.LegacySessionRecordingConfigSpec = &legacySpec
+	return nil
+}
+
 // Copy creates a copy of the resource and returns it.
 func (c *ClusterConfigV3) Copy() ClusterConfig {
 	out := *c
@@ -292,6 +276,5 @@ func (c *ClusterConfigV3) Copy() ClusterConfig {
 
 // String represents a human readable version of the cluster name.
 func (c *ClusterConfigV3) String() string {
-	return fmt.Sprintf("ClusterConfig(SessionRecording=%v, ClusterID=%v, ProxyChecksHostKeys=%v)",
-		c.Spec.SessionRecording, c.Spec.ClusterID, c.Spec.ProxyChecksHostKeys)
+	return fmt.Sprintf("ClusterConfig(ClusterID=%v)", c.Spec.ClusterID)
 }
