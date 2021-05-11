@@ -2264,10 +2264,10 @@ func (a *ServerWithRoles) GetClusterNetworkingConfig(ctx context.Context, opts .
 
 // SetClusterNetworkingConfig sets cluster networking configuration.
 func (a *ServerWithRoles) SetClusterNetworkingConfig(ctx context.Context, netConfig types.ClusterNetworkingConfig) error {
-	if err := a.action(defaults.Namespace, services.KindClusterConfig, services.VerbCreate); err != nil {
+	if err := a.action(defaults.Namespace, services.KindClusterNetworkingConfig, services.VerbCreate); err != nil {
 		return trace.Wrap(err)
 	}
-	if err := a.action(defaults.Namespace, services.KindClusterConfig, services.VerbUpdate); err != nil {
+	if err := a.action(defaults.Namespace, services.KindClusterNetworkingConfig, services.VerbUpdate); err != nil {
 		return trace.Wrap(err)
 	}
 	return a.authServer.SetClusterNetworkingConfig(ctx, netConfig)
@@ -2924,10 +2924,10 @@ func (a *ServerWithRoles) GetSessionRecordingConfig(ctx context.Context, opts ..
 
 // SetSessionRecordingConfig sets session recording configuration.
 func (a *ServerWithRoles) SetSessionRecordingConfig(ctx context.Context, recConfig types.SessionRecordingConfig) error {
-	if err := a.action(defaults.Namespace, services.KindClusterConfig, services.VerbCreate); err != nil {
+	if err := a.action(defaults.Namespace, services.KindSessionRecordingConfig, services.VerbCreate); err != nil {
 		return trace.Wrap(err)
 	}
-	if err := a.action(defaults.Namespace, services.KindClusterConfig, services.VerbUpdate); err != nil {
+	if err := a.action(defaults.Namespace, services.KindSessionRecordingConfig, services.VerbUpdate); err != nil {
 		return trace.Wrap(err)
 	}
 	return a.authServer.SetSessionRecordingConfig(ctx, recConfig)
