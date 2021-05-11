@@ -2480,11 +2480,6 @@ func (g *GRPCServer) SetClusterNetworkingConfig(ctx context.Context, netConfig *
 	return &empty.Empty{}, nil
 }
 
-type grpcContext struct {
-	*Context
-	*ServerWithRoles
-}
-
 // GetSessionRecordingConfig gets session recording configuration.
 func (g *GRPCServer) GetSessionRecordingConfig(ctx context.Context, _ *empty.Empty) (*types.SessionRecordingConfigV2, error) {
 	auth, err := g.authenticate(ctx)
@@ -2512,6 +2507,11 @@ func (g *GRPCServer) SetSessionRecordingConfig(ctx context.Context, recConfig *t
 		return nil, trail.ToGRPC(err)
 	}
 	return &empty.Empty{}, nil
+}
+
+type grpcContext struct {
+	*Context
+	*ServerWithRoles
 }
 
 // authenticate extracts authentication context and returns initialized auth server
