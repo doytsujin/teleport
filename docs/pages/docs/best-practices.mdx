@@ -38,6 +38,7 @@ Our documentation is primarily built with [Next](https://github.com/gravitationa
 - Use [Teleport's lucidchart library](https://app.lucidchart.com/lucidchart/dfcf1f4a-5cf0-4758-8ebb-f6ea86900aba/edit) to create diagrams with a consistent design language.
 - Diagram multistep sections using sequence diagrams that depicts steps linearly.
 - Several great examples are available here: https://gravitational.slab.com/posts/diagrams-ix9nzhpd.
+- Reach out to the design team for custom requests and for advice to improve your designs.
 
 **Videos:**
 
@@ -90,7 +91,7 @@ The following standards are already in use. Please follow them (although these a
 4. Tend to write sparser one to two-sentence groupings rather than lengthier text block paragraphs.
 5. Use periods at the end of a line even in a list.
 6. Use lists aggressively.
-7. Article titles should follow a `TITLE NAME | Teleport Docs` format. Total character count should not exceed 70 for the entire title since this can impact SEO.
+7. Article titles should follow a `TITLE NAME | Teleport Docs` format. The total character count should not exceed 70 for the entire title since this can impact SEO.
 8. Page rank matters less now but content matters more. Make sure to have a good, well-worded, description that uses common keywords around the subject. Also, liberally sprinkle said keywords throughout the article.
 
 The rest are subject to final approval by the developer relations team. In general, it's still a good idea to adopt some of these when writing your next article:
@@ -238,18 +239,22 @@ To insert tabs block like the one above use this syntax:
 
 ### Figures
 
+The new Figure component can help with customizing and using images, figures, and diagrams:
+
+<Figure
+  align="center"
+  bordered
+  caption="Unsplash example"
+>
+  ![Unsplash example](https://images.unsplash.com/photo-1620629229895-9eb912b04b66?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=624&q=80)
+</Figure>
+
 ```jsx
 <Figure
   align="center"
   bordered
-  caption="SSO login success"
+  caption="Unsplash example"
 >
-  <Image
-    alt=""
-    height="265"
-    src="../../img/server-access/sso_login_success.png"
-    unoptimized
-    width="581"
-  />
+  ![Unsplash example](https://images.unsplash.com/photo-1620629229895-9eb912b04b66?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=624&q=80)
 </Figure>
 ```
