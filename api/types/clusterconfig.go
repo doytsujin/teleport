@@ -62,26 +62,22 @@ type ClusterConfig interface {
 	// DELETE IN 8.0.0
 	HasNetworkingConfig() bool
 
-	// GetNetworkingConfig returns embedded networking configuration.
+	// SetNetworkingFields sets embedded networking configuration.
 	// DELETE IN 8.0.0
-	GetNetworkingConfig() (ClusterNetworkingConfig, error)
-
-	// SetNetworkingConfig sets embedded networking configuration.
-	// DELETE IN 8.0.0
-	SetNetworkingConfig(ClusterNetworkingConfig) error
+	SetNetworkingFields(ClusterNetworkingConfig) error
 
 	// HasSessionRecordingConfig returns true if embedded session recording
 	// configuration is set.
 	// DELETE IN 8.0.0
 	HasSessionRecordingConfig() bool
 
-	// GetSessionRecordingConfig returns embedded session recording configuration.
+	// SetSessionRecordingFields sets embedded session recording configuration.
 	// DELETE IN 8.0.0
-	GetSessionRecordingConfig() (SessionRecordingConfig, error)
+	SetSessionRecordingFields(SessionRecordingConfig) error
 
-	// SetSessionRecordingConfig sets embedded session recording configuration.
+	// ClearLegacyFields clears embedded legacy fields.
 	// DELETE IN 8.0.0
-	SetSessionRecordingConfig(SessionRecordingConfig) error
+	ClearLegacyFields()
 
 	// Copy creates a copy of the resource and returns it.
 	Copy() ClusterConfig
@@ -219,18 +215,9 @@ func (c *ClusterConfigV3) HasNetworkingConfig() bool {
 	return c.Spec.ClusterNetworkingConfigSpecV2 != nil
 }
 
-// GetNetworkingConfig returns embedded networking configuration.
+// SetNetworkingFields sets embedded networking configuration.
 // DELETE IN 8.0.0
-func (c *ClusterConfigV3) GetNetworkingConfig() (ClusterNetworkingConfig, error) {
-	if c.Spec.ClusterNetworkingConfigSpecV2 == nil {
-		return nil, trace.BadParameter("ClusterNetworkingConfigSpec is not set")
-	}
-	return NewClusterNetworkingConfig(*c.Spec.ClusterNetworkingConfigSpecV2)
-}
-
-// SetNetworkingConfig sets embedded networking configuration.
-// DELETE IN 8.0.0
-func (c *ClusterConfigV3) SetNetworkingConfig(netConfig ClusterNetworkingConfig) error {
+func (c *ClusterConfigV3) SetNetworkingFields(netConfig ClusterNetworkingConfig) error {
 	netConfigV2, ok := netConfig.(*ClusterNetworkingConfigV2)
 	if !ok {
 		return trace.BadParameter("unexpected type %T", netConfig)
@@ -246,19 +233,9 @@ func (c *ClusterConfigV3) HasSessionRecordingConfig() bool {
 	return c.Spec.LegacySessionRecordingConfigSpec != nil
 }
 
-// GetSessionRecordingConfig returns embedded session recording configuration.
+// SetSessionRecordingFields sets embedded session recording configuration.
 // DELETE IN 8.0.0
-func (c *ClusterConfigV3) GetSessionRecordingConfig() (SessionRecordingConfig, error) {
-	if c.Spec.LegacySessionRecordingConfigSpec == nil {
-		return nil, trace.BadParameter("SessionRecordingConfigSpec is not set")
-	}
-	recordingSpec := SessionRecordingConfigSpecV2(*c.Spec.LegacySessionRecordingConfigSpec)
-	return NewSessionRecordingConfig(recordingSpec)
-}
-
-// SetSessionRecordingConfig sets embedded session recording configuration.
-// DELETE IN 8.0.0
-func (c *ClusterConfigV3) SetSessionRecordingConfig(recConfig SessionRecordingConfig) error {
+func (c *ClusterConfigV3) SetSessionRecordingFields(recConfig SessionRecordingConfig) error {
 	recConfigV2, ok := recConfig.(*SessionRecordingConfigV2)
 	if !ok {
 		return trace.BadParameter("unexpected type %T", recConfig)
@@ -266,6 +243,13 @@ func (c *ClusterConfigV3) SetSessionRecordingConfig(recConfig SessionRecordingCo
 	legacySpec := LegacySessionRecordingConfigSpec(recConfigV2.Spec)
 	c.Spec.LegacySessionRecordingConfigSpec = &legacySpec
 	return nil
+}
+
+// ClearLegacyFields clears embedded legacy fields.
+// DELETE IN 8.0.0
+func (c *ClusterConfigV3) ClearLegacyFields() {
+	c.Spec.ClusterNetworkingConfigSpecV2 = nil
+	c.Spec.LegacySessionRecordingConfigSpec = nil
 }
 
 // Copy creates a copy of the resource and returns it.

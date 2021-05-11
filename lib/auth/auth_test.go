@@ -1114,6 +1114,7 @@ func TestEmitSSOLoginFailureEvent(t *testing.T) {
 func newTestServices(t *testing.T) Services {
 	bk, err := memory.New(memory.Config{})
 	require.NoError(t, err)
+	configService := local.NewClusterConfigurationService(bk)
 	return Services{
 		Trust:                local.NewCAService(bk),
 		Presence:             local.NewPresenceService(bk),
@@ -1121,8 +1122,8 @@ func newTestServices(t *testing.T) Services {
 		Identity:             local.NewIdentityService(bk),
 		Access:               local.NewAccessService(bk),
 		DynamicAccessExt:     local.NewDynamicAccessService(bk),
-		ClusterConfiguration: local.NewClusterConfigurationService(bk),
-		Events:               local.NewEventsService(bk),
+		ClusterConfiguration: configService,
+		Events:               local.NewEventsService(bk, configService.GetClusterConfig),
 		IAuditLog:            events.NewDiscardAuditLog(),
 	}
 }
