@@ -34,26 +34,19 @@ func IsRecordSync(mode string) bool {
 	return mode == RecordAtProxySync || mode == RecordAtNodeSync
 }
 
-// SessionRecordingConfigSpecSchemaTemplate is a template for SessionRecordingConfig schema.
-const SessionRecordingConfigSpecSchemaTemplate = `{
+// SessionRecordingConfigSpecSchema is JSON schema for SessionRecordingConfig spec.
+const SessionRecordingConfigSpecSchema = `{
 	"type": "object",
 	"additionalProperties": false,
 	"properties": {
 		"mode": {"type": "string"},
-		"proxy_checks_host_keys": {"type": "string"}%v
+		"proxy_checks_host_keys": {"type": "string"}
 	}
 }`
 
-// GetSessionRecordingConfigSchema returns the schema with optionally injected
-// schema for extensions.
-func GetSessionRecordingConfigSchema(extensionSchema string) string {
-	var recConfigSchema string
-	if recConfigSchema == "" {
-		recConfigSchema = fmt.Sprintf(SessionRecordingConfigSpecSchemaTemplate, "")
-	} else {
-		recConfigSchema = fmt.Sprintf(SessionRecordingConfigSpecSchemaTemplate, ","+extensionSchema)
-	}
-	return fmt.Sprintf(V2SchemaTemplate, MetadataSchema, recConfigSchema, DefaultDefinitions)
+// GetSessionRecordingConfigSchema returns full SessionRecordingConfig JSON schema.
+func GetSessionRecordingConfigSchema() string {
+	return fmt.Sprintf(V2SchemaTemplate, MetadataSchema, SessionRecordingConfigSpecSchema, DefaultDefinitions)
 }
 
 // UnmarshalSessionRecordingConfig unmarshals the SessionRecordingConfig resource from JSON.
@@ -74,7 +67,7 @@ func UnmarshalSessionRecordingConfig(bytes []byte, opts ...MarshalOption) (types
 			return nil, trace.BadParameter(err.Error())
 		}
 	} else {
-		err = utils.UnmarshalWithSchema(GetSessionRecordingConfigSchema(""), &recConfig, bytes)
+		err = utils.UnmarshalWithSchema(GetSessionRecordingConfigSchema(), &recConfig, bytes)
 		if err != nil {
 			return nil, trace.BadParameter(err.Error())
 		}
