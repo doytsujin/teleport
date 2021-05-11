@@ -24,6 +24,16 @@ import (
 	"github.com/gravitational/trace"
 )
 
+// IsRecordAtProxy returns true if recording is sync or async at proxy.
+func IsRecordAtProxy(mode string) bool {
+	return mode == RecordAtProxy || mode == RecordAtProxySync
+}
+
+// IsRecordSync returns true if recording is sync or async for proxy or node.
+func IsRecordSync(mode string) bool {
+	return mode == RecordAtProxySync || mode == RecordAtNodeSync
+}
+
 // SessionRecordingConfigSpecSchemaTemplate is a template for SessionRecordingConfig schema.
 const SessionRecordingConfigSpecSchemaTemplate = `{
 	"type": "object",
