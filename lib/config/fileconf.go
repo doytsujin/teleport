@@ -985,10 +985,13 @@ type Authority struct {
 
 // Parse reads values and returns parsed CertAuthority
 func (a *Authority) Parse() (services.CertAuthority, services.Role, error) {
-	ca := types.NewCertAuthority(types.CertAuthoritySpecV2{
+	ca, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
 		Type:        a.Type,
 		ClusterName: a.DomainName,
 	})
+	if err != nil {
+		return nil, nil, trace.Wrap(err)
+	}
 
 	// transform old allowed logins into roles
 	role := services.RoleForCertAuthority(ca)
@@ -1083,7 +1086,7 @@ func (o *OIDCConnector) Parse() (services.OIDCConnector, error) {
 		})
 	}
 
-	v2 := services.NewOIDCConnector(o.ID, services.OIDCConnectorSpecV2{
+	v2, err := services.NewOIDCConnector(o.ID, services.OIDCConnectorSpecV2{
 		IssuerURL:     o.IssuerURL,
 		ClientID:      o.ClientID,
 		ClientSecret:  o.ClientSecret,
@@ -1092,10 +1095,13 @@ func (o *OIDCConnector) Parse() (services.OIDCConnector, error) {
 		Scope:         o.Scope,
 		ClaimsToRoles: mappings,
 	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
 
 	v2.SetACR(o.ACR)
 	v2.SetProvider(o.Provider)
-	if err := v2.Check(); err != nil {
+	if err := v2.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return v2, nil

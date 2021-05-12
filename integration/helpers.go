@@ -270,7 +270,7 @@ func (s *InstanceSecrets) GetRoles() []services.Role {
 // case we always return hard-coded userCA + hostCA (and they share keys
 // for simplicity)
 func (s *InstanceSecrets) GetCAs() []services.CertAuthority {
-	hostCA := types.NewCertAuthority(services.CertAuthoritySpecV2{
+	hostCA, _ := types.NewCertAuthority(services.CertAuthoritySpecV2{
 		Type:         services.HostCA,
 		ClusterName:  s.SiteName,
 		SigningKeys:  [][]byte{s.PrivKey},
@@ -280,7 +280,7 @@ func (s *InstanceSecrets) GetCAs() []services.CertAuthority {
 	})
 	hostCA.SetTLSKeyPairs([]services.TLSKeyPair{{Cert: s.TLSCACert, Key: s.PrivKey}})
 
-	userCA := types.NewCertAuthority(services.CertAuthoritySpecV2{
+	userCA, _ := types.NewCertAuthority(services.CertAuthoritySpecV2{
 		Type:         services.UserCA,
 		ClusterName:  s.SiteName,
 		SigningKeys:  [][]byte{s.PrivKey},

@@ -23,47 +23,22 @@ import (
 	"github.com/gravitational/teleport/lib/utils"
 )
 
-// MarshalDatabaseServer marshals the DatabaseServer resource to JSON.
-func MarshalDatabaseServer(databaseServer types.DatabaseServer, opts ...MarshalOption) ([]byte, error) {
-	if err := databaseServer.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	cfg, err := CollectOptions(opts)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	switch databaseServer := databaseServer.(type) {
-	case *types.DatabaseServerV3:
-		if version := databaseServer.GetVersion(); version != V3 {
-			return nil, trace.BadParameter("mismatched database server version %v and type %T", version, databaseServer)
-		}
-		if !cfg.PreserveResourceID {
-			// avoid modifying the original object
-			// to prevent unexpected data races
-			copy := *databaseServer
-			copy.SetResourceID(0)
-			databaseServer = &copy
-		}
-		return utils.FastMarshal(databaseServer)
-	default:
-		return nil, trace.BadParameter("unrecognized database server version %T", databaseServer)
-	}
-}
-
 // UnmarshalDatabaseServer unmarshals the DatabaseServer resource from JSON.
 func UnmarshalDatabaseServer(data []byte, opts ...MarshalOption) (types.DatabaseServer, error) {
 	if len(data) == 0 {
-		return nil, trace.BadParameter("missing database server data")
+		return nil, trace.BadParameter("missing resource data")
 	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	var h ResourceHeader
 	if err := utils.FastUnmarshal(data, &h); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	switch h.Version {
 	case V3:
 		var s types.DatabaseServerV3
@@ -80,6 +55,33 @@ func UnmarshalDatabaseServer(data []byte, opts ...MarshalOption) (types.Database
 			s.SetExpiry(cfg.Expires)
 		}
 		return &s, nil
+	default:
+		return nil, trace.BadParameter("database server resource version %q is not supported", h.Version)
 	}
-	return nil, trace.BadParameter("database server resource version %q is not supported", h.Version)
+}
+
+// MarshalDatabaseServer marshals the DatabaseServer resource to JSON.
+func MarshalDatabaseServer(databaseServer types.DatabaseServer, opts ...MarshalOption) ([]byte, error) {
+	if err := databaseServer.CheckAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	cfg, err := CollectOptions(opts)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	switch databaseServer := databaseServer.(type) {
+	case *types.DatabaseServerV3:
+		if !cfg.PreserveResourceID {
+			// avoid modifying the original object
+			// to prevent unexpected data races
+			copy := *databaseServer
+			copy.SetResourceID(0)
+			databaseServer = &copy
+		}
+		return utils.FastMarshal(databaseServer)
+	default:
+		return nil, trace.BadParameter("unrecognized database server version %T", databaseServer)
+	}
 }

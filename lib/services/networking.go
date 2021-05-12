@@ -17,6 +17,8 @@ limitations under the License.
 package services
 
 import (
+	"encoding/json"
+
 	"github.com/gravitational/trace"
 
 	"github.com/gravitational/teleport/api/types"
@@ -25,8 +27,6 @@ import (
 
 // UnmarshalClusterNetworkingConfig unmarshals the ClusterNetworkingConfig resource from JSON.
 func UnmarshalClusterNetworkingConfig(bytes []byte, opts ...MarshalOption) (types.ClusterNetworkingConfig, error) {
-	var netConfig types.ClusterNetworkingConfigV2
-
 	if len(bytes) == 0 {
 		return nil, trace.BadParameter("missing resource data")
 	}
@@ -36,22 +36,31 @@ func UnmarshalClusterNetworkingConfig(bytes []byte, opts ...MarshalOption) (type
 		return nil, trace.Wrap(err)
 	}
 
-	if err := utils.FastUnmarshal(bytes, &netConfig); err != nil {
-		return nil, trace.BadParameter(err.Error())
-	}
-
-	err = netConfig.CheckAndSetDefaults()
-	if err != nil {
+	var h ResourceHeader
+	if err := json.Unmarshal(bytes, &h); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	if cfg.ID != 0 {
-		netConfig.SetResourceID(cfg.ID)
+	switch h.Version {
+	case V2:
+		var netConfig types.ClusterNetworkingConfigV2
+		if err := utils.FastUnmarshal(bytes, &netConfig); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		if err := netConfig.CheckAndSetDefaults(); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		if cfg.ID != 0 {
+			netConfig.SetResourceID(cfg.ID)
+		}
+		if !cfg.Expires.IsZero() {
+			netConfig.SetExpiry(cfg.Expires)
+		}
+		return &netConfig, nil
+	default:
+		return nil, trace.BadParameter(
+			"cluster network config resource version %q is not supported", h.Version)
 	}
-	if !cfg.Expires.IsZero() {
-		netConfig.SetExpiry(cfg.Expires)
-	}
-	return &netConfig, nil
 }
 
 // MarshalClusterNetworkingConfig marshals the ClusterNetworkingConfig resource to JSON.
@@ -67,9 +76,6 @@ func MarshalClusterNetworkingConfig(netConfig types.ClusterNetworkingConfig, opt
 
 	switch netConfig := netConfig.(type) {
 	case *types.ClusterNetworkingConfigV2:
-		if version := netConfig.GetVersion(); version != V2 {
-			return nil, trace.BadParameter("mismatched cluster networking config version %v and type %T", version, netConfig)
-		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races

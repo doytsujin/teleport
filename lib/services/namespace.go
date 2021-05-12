@@ -22,26 +22,10 @@ import (
 	"github.com/gravitational/teleport/lib/utils"
 )
 
-// MarshalNamespace marshals the Namespace resource to JSON.
-func MarshalNamespace(resource Namespace, opts ...MarshalOption) ([]byte, error) {
-	cfg, err := CollectOptions(opts)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if !cfg.PreserveResourceID {
-		// avoid modifying the original object
-		// to prevent unexpected data races
-		copy := resource
-		copy.SetResourceID(0)
-		resource = copy
-	}
-	return utils.FastMarshal(resource)
-}
-
 // UnmarshalNamespace unmarshals the Namespace resource from JSON.
 func UnmarshalNamespace(data []byte, opts ...MarshalOption) (*Namespace, error) {
 	if len(data) == 0 {
-		return nil, trace.BadParameter("missing namespace data")
+		return nil, trace.BadParameter("missing resource data")
 	}
 
 	cfg, err := CollectOptions(opts)
@@ -68,4 +52,25 @@ func UnmarshalNamespace(data []byte, opts ...MarshalOption) (*Namespace, error) 
 	}
 
 	return &namespace, nil
+}
+
+// MarshalNamespace marshals the Namespace resource to JSON.
+func MarshalNamespace(namespace Namespace, opts ...MarshalOption) ([]byte, error) {
+	if err := namespace.CheckAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	cfg, err := CollectOptions(opts)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	if !cfg.PreserveResourceID {
+		// avoid modifying the original object
+		// to prevent unexpected data races
+		copy := namespace
+		copy.SetResourceID(0)
+		namespace = copy
+	}
+	return utils.FastMarshal(namespace)
 }

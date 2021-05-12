@@ -53,11 +53,15 @@ func NewJWTAuthority(clusterName string) (CertAuthority, error) {
 	if keyPair.PublicKey, keyPair.PrivateKey, err = jwt.GenerateKeyPair(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return types.NewCertAuthority(types.CertAuthoritySpecV2{
+	ca, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
 		Type:        types.JWTSigner,
 		ClusterName: clusterName,
 		JWTKeyPairs: []JWTKeyPair{keyPair},
-	}), nil
+	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return ca, nil
 }
 
 // NewCertAuthority returns new cert authority.
@@ -71,7 +75,7 @@ func NewCertAuthority(
 	roles []string,
 	signingAlg CertAuthoritySpecV2_SigningAlgType,
 ) CertAuthority {
-	return types.NewCertAuthority(types.CertAuthoritySpecV2{
+	ca, _ := types.NewCertAuthority(types.CertAuthoritySpecV2{
 		Type:         caType,
 		ClusterName:  clusterName,
 		SigningKeys:  signingKeys,
@@ -79,6 +83,7 @@ func NewCertAuthority(
 		Roles:        roles,
 		SigningAlg:   signingAlg,
 	})
+	return ca
 }
 
 // ValidateCertAuthority validates the CertAuthority
@@ -354,15 +359,20 @@ func UnmarshalCertRoles(data string) ([]string, error) {
 
 // UnmarshalCertAuthority unmarshals the CertAuthority resource to JSON.
 func UnmarshalCertAuthority(bytes []byte, opts ...MarshalOption) (CertAuthority, error) {
+	if len(bytes) == 0 {
+		return nil, trace.BadParameter("missing resource data")
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	var h ResourceHeader
-	err = utils.FastUnmarshal(bytes, &h)
-	if err != nil {
+	if err = utils.FastUnmarshal(bytes, &h); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	switch h.Version {
 	case V2:
 		var ca CertAuthorityV2
@@ -376,13 +386,17 @@ func UnmarshalCertAuthority(bytes []byte, opts ...MarshalOption) (CertAuthority,
 			ca.SetResourceID(cfg.ID)
 		}
 		return &ca, nil
+	default:
+		return nil, trace.BadParameter("cert authority resource version %v is not supported", h.Version)
 	}
-
-	return nil, trace.BadParameter("cert authority resource version %v is not supported", h.Version)
 }
 
 // MarshalCertAuthority marshals the CertAuthority resource to JSON.
 func MarshalCertAuthority(certAuthority CertAuthority, opts ...MarshalOption) ([]byte, error) {
+	if err := ValidateCertAuthority(certAuthority); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -390,9 +404,6 @@ func MarshalCertAuthority(certAuthority CertAuthority, opts ...MarshalOption) ([
 
 	switch certAuthority := certAuthority.(type) {
 	case *CertAuthorityV2:
-		if version := certAuthority.GetVersion(); version != V2 {
-			return nil, trace.BadParameter("mismatched certificate authority version %v and type %T", version, certAuthority)
-		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races

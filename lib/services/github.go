@@ -26,10 +26,15 @@ import (
 
 // UnmarshalGithubConnector unmarshals the GithubConnector resource from JSON.
 func UnmarshalGithubConnector(bytes []byte) (GithubConnector, error) {
+	if len(bytes) == 0 {
+		return nil, trace.BadParameter("missing resource data")
+	}
+
 	var h ResourceHeader
 	if err := json.Unmarshal(bytes, &h); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	switch h.Version {
 	case V3:
 		var c GithubConnectorV3
@@ -40,13 +45,18 @@ func UnmarshalGithubConnector(bytes []byte) (GithubConnector, error) {
 			return nil, trace.Wrap(err)
 		}
 		return &c, nil
+	default:
+		return nil, trace.BadParameter(
+			"Github connector resource version %q is not supported", h.Version)
 	}
-	return nil, trace.BadParameter(
-		"Github connector resource version %q is not supported", h.Version)
 }
 
 // MarshalGithubConnector marshals the GithubConnector resource to JSON.
 func MarshalGithubConnector(githubConnector GithubConnector, opts ...MarshalOption) ([]byte, error) {
+	if err := githubConnector.CheckAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -54,9 +64,6 @@ func MarshalGithubConnector(githubConnector GithubConnector, opts ...MarshalOpti
 
 	switch githubConnector := githubConnector.(type) {
 	case *GithubConnectorV3:
-		if version := githubConnector.GetVersion(); version != V3 {
-			return nil, trace.BadParameter("mismatched github connector version %v and type %T", version, githubConnector)
-		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races

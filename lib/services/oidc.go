@@ -92,15 +92,20 @@ func OIDCClaimsToTraits(claims jose.Claims) map[string][]string {
 
 // UnmarshalOIDCConnector unmarshals the OIDCConnector resource from JSON.
 func UnmarshalOIDCConnector(bytes []byte, opts ...MarshalOption) (OIDCConnector, error) {
+	if len(bytes) == 0 {
+		return nil, trace.BadParameter("missing resource data")
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	var h ResourceHeader
-	err = utils.FastUnmarshal(bytes, &h)
-	if err != nil {
+	if err = utils.FastUnmarshal(bytes, &h); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	switch h.Version {
 	case V2:
 		var c OIDCConnectorV2
@@ -117,13 +122,17 @@ func UnmarshalOIDCConnector(bytes []byte, opts ...MarshalOption) (OIDCConnector,
 			c.SetExpiry(cfg.Expires)
 		}
 		return &c, nil
+	default:
+		return nil, trace.BadParameter("OIDC connector resource version %v is not supported", h.Version)
 	}
-
-	return nil, trace.BadParameter("OIDC connector resource version %v is not supported", h.Version)
 }
 
 // MarshalOIDCConnector marshals the OIDCConnector resource to JSON.
 func MarshalOIDCConnector(oidcConnector OIDCConnector, opts ...MarshalOption) ([]byte, error) {
+	if err := ValidateOIDCConnector(oidcConnector); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -131,9 +140,6 @@ func MarshalOIDCConnector(oidcConnector OIDCConnector, opts ...MarshalOption) ([
 
 	switch oidcConnector := oidcConnector.(type) {
 	case *OIDCConnectorV2:
-		if version := oidcConnector.GetVersion(); version != V2 {
-			return nil, trace.BadParameter("mismatched OIDC connector version %v and type %T", version, oidcConnector)
-		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races

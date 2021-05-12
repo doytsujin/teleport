@@ -1155,28 +1155,47 @@ func ValidateAccessRequestForUser(getter UserAndRoleGetter, req AccessRequest, o
 
 // UnmarshalAccessRequest unmarshals the AccessRequest resource from JSON.
 func UnmarshalAccessRequest(data []byte, opts ...MarshalOption) (AccessRequest, error) {
+	if len(data) == 0 {
+		return nil, trace.BadParameter("missing resource data")
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	var req AccessRequestV3
-	if err := utils.FastUnmarshal(data, &req); err != nil {
+
+	var h ResourceHeader
+	if err = utils.FastUnmarshal(data, &h); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err := ValidateAccessRequest(&req); err != nil {
-		return nil, trace.Wrap(err)
+
+	switch h.Version {
+	case V3:
+		var req AccessRequestV3
+		if err := utils.FastUnmarshal(data, &req); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		if err := ValidateAccessRequest(&req); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		if cfg.ID != 0 {
+			req.SetResourceID(cfg.ID)
+		}
+		if !cfg.Expires.IsZero() {
+			req.SetExpiry(cfg.Expires)
+		}
+		return &req, nil
+	default:
+		return nil, trace.BadParameter("access request resource version %v is not supported", h.Version)
 	}
-	if cfg.ID != 0 {
-		req.SetResourceID(cfg.ID)
-	}
-	if !cfg.Expires.IsZero() {
-		req.SetExpiry(cfg.Expires)
-	}
-	return &req, nil
 }
 
 // MarshalAccessRequest marshals the AccessRequest resource to JSON.
 func MarshalAccessRequest(accessRequest AccessRequest, opts ...MarshalOption) ([]byte, error) {
+	if err := ValidateAccessRequest(accessRequest); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -1184,9 +1203,6 @@ func MarshalAccessRequest(accessRequest AccessRequest, opts ...MarshalOption) ([
 
 	switch accessRequest := accessRequest.(type) {
 	case *AccessRequestV3:
-		if version := accessRequest.GetVersion(); version != V3 {
-			return nil, trace.BadParameter("mismatched access request version %v and type %T", version, accessRequest)
-		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races

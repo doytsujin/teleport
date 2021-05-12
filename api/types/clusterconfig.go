@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/utils"
 
 	"github.com/gravitational/trace"
@@ -87,20 +86,11 @@ type ClusterConfig interface {
 
 // NewClusterConfig is a convenience wrapper to create a ClusterConfig resource.
 func NewClusterConfig(spec ClusterConfigSpecV3) (ClusterConfig, error) {
-	cc := ClusterConfigV3{
-		Kind:    KindClusterConfig,
-		Version: V3,
-		Metadata: Metadata{
-			Name:      MetaNameClusterConfig,
-			Namespace: defaults.Namespace,
-		},
-		Spec: spec,
-	}
+	cc := &ClusterConfigV3{Spec: spec}
 	if err := cc.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	return &cc, nil
+	return cc, nil
 }
 
 // GetVersion returns resource version
@@ -225,22 +215,27 @@ func (c *ClusterConfigV3) SetLocalAuth(b bool) {
 	c.Spec.LocalAuth = NewBool(b)
 }
 
+// setStaticFields sets static fields
+func (c *ClusterConfigV3) setStaticFields() {
+	c.Kind = KindClusterConfig
+	c.Version = V3
+}
+
 // CheckAndSetDefaults checks validity of all parameters and sets defaults.
 func (c *ClusterConfigV3) CheckAndSetDefaults() error {
-	// make sure we have defaults for all metadata fields
-	err := c.Metadata.CheckAndSetDefaults()
-	if err != nil {
-		return trace.Wrap(err)
+	c.setStaticFields()
+	if c.Metadata.Name == "" {
+		c.Metadata.Name = MetaNameClusterConfig
 	}
-	if c.Version == "" {
-		c.Version = V3
-	}
-
 	if c.Spec.SessionRecording == "" {
 		c.Spec.SessionRecording = RecordAtNode
 	}
 	if c.Spec.ProxyChecksHostKeys == "" {
 		c.Spec.ProxyChecksHostKeys = HostKeyCheckYes
+	}
+
+	if err := c.Metadata.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
 	}
 
 	// check if the recording type is valid

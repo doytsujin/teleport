@@ -61,20 +61,13 @@ type ClusterNetworkingConfig interface {
 
 // NewClusterNetworkingConfig is a convenience method to create ClusterNetworkingConfigV2.
 func NewClusterNetworkingConfig(spec ClusterNetworkingConfigSpecV2) (ClusterNetworkingConfig, error) {
-	netConfig := ClusterNetworkingConfigV2{
-		Kind:    KindClusterNetworkingConfig,
-		Version: V2,
-		Metadata: Metadata{
-			Name:      MetaNameClusterNetworkingConfig,
-			Namespace: defaults.Namespace,
-		},
+	c := ClusterNetworkingConfigV2{
 		Spec: spec,
 	}
-
-	if err := netConfig.CheckAndSetDefaults(); err != nil {
+	if err := c.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return &netConfig, nil
+	return &c, nil
 }
 
 // DefaultClusterNetworkingConfig returns the default cluster networking config.
@@ -187,11 +180,20 @@ func (c *ClusterNetworkingConfigV2) SetSessionControlTimeout(d time.Duration) {
 	c.Spec.SessionControlTimeout = Duration(d)
 }
 
+// setStaticFields sets static fields
+func (c *ClusterNetworkingConfigV2) setStaticFields() {
+	c.Kind = KindClusterNetworkingConfig
+	c.Version = V2
+}
+
 // CheckAndSetDefaults verifies the constraints for ClusterNetworkingConfig.
 func (c *ClusterNetworkingConfigV2) CheckAndSetDefaults() error {
-	// Make sure we have defaults for all metadata fields.
-	err := c.Metadata.CheckAndSetDefaults()
-	if err != nil {
+	c.setStaticFields()
+	if c.Metadata.Name == "" {
+		c.Metadata.Name = MetaNameClusterNetworkingConfig
+	}
+
+	if err := c.Metadata.CheckAndSetDefaults(); err != nil {
 		return trace.Wrap(err)
 	}
 
