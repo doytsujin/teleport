@@ -218,7 +218,6 @@ func ForApps(cfg Config) Config {
 
 // ForDatabases sets up watch configuration for database proxy servers.
 func ForDatabases(cfg Config) Config {
-	// cfg.target = "databases"
 	cfg.Watches = []services.WatchKind{
 		{Kind: services.KindCertAuthority, LoadSecrets: false},
 		{Kind: services.KindClusterName},
