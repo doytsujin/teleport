@@ -49,7 +49,7 @@ type SessionRecordingConfig interface {
 	CheckAndSetDefaults() error
 }
 
-// NewSessionRecordingConfig is a convenience method to to create SessionRecordingConfigV2.
+// NewSessionRecordingConfig is a convenience method to create SessionRecordingConfigV2.
 func NewSessionRecordingConfig(spec SessionRecordingConfigSpecV2) (SessionRecordingConfig, error) {
 	recConfig := SessionRecordingConfigV2{
 		Kind:    KindSessionRecordingConfig,
