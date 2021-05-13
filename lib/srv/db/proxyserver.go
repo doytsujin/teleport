@@ -24,6 +24,10 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
+
+	"github.com/jonboulle/clockwork"
+	"github.com/sirupsen/logrus"
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
@@ -33,14 +37,13 @@ import (
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/multiplexer"
 	"github.com/gravitational/teleport/lib/reversetunnel"
+	"github.com/gravitational/teleport/lib/srv"
 	"github.com/gravitational/teleport/lib/srv/db/common"
 	"github.com/gravitational/teleport/lib/srv/db/mysql"
 	"github.com/gravitational/teleport/lib/srv/db/postgres"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
-
 	"github.com/gravitational/trace"
-	"github.com/sirupsen/logrus"
 )
 
 // ProxyServer runs inside Teleport proxy and is responsible to accepting
@@ -239,20 +242,27 @@ func (s *ProxyServer) Connect(ctx context.Context, user, database string) (net.C
 // this proxy and Teleport database service over reverse tunnel.
 //
 // Implements common.Service.
-func (s *ProxyServer) Proxy(ctx context.Context, clientConn, serviceConn io.ReadWriteCloser) error {
+func (s *ProxyServer) Proxy(ctx context.Context, clientConn net.Conn, serviceConn io.ReadWriteCloser) error {
+	tc, err := s.monitorConn(ctx, clientConn)
+	if err != nil {
+		clientConn.Close()
+		serviceConn.Close()
+		return trace.Wrap(err)
+	}
+
 	errCh := make(chan error, 2)
 	go func() {
 		defer s.log.Debug("Stop proxying from client to service.")
 		defer serviceConn.Close()
-		defer clientConn.Close()
-		_, err := io.Copy(serviceConn, clientConn)
+		defer tc.Close()
+		_, err := io.Copy(serviceConn, tc)
 		errCh <- err
 	}()
 	go func() {
 		defer s.log.Debug("Stop proxying from service to client.")
 		defer serviceConn.Close()
-		defer clientConn.Close()
-		_, err := io.Copy(clientConn, serviceConn)
+		defer tc.Close()
+		_, err := io.Copy(tc, serviceConn)
 		errCh <- err
 	}()
 	var errs []error
@@ -268,6 +278,50 @@ func (s *ProxyServer) Proxy(ctx context.Context, clientConn, serviceConn io.Read
 		}
 	}
 	return trace.NewAggregate(errs...)
+}
+
+func (s *ProxyServer) monitorConn(ctx context.Context, conn net.Conn) (net.Conn, error) {
+	authContext, err := s.cfg.Authorizer.Authorize(ctx)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	checker := authContext.Checker
+	certExpires := authContext.Identity.GetIdentity().Expires
+
+	var disconnectCertExpired time.Time
+	if !certExpires.IsZero() && checker.AdjustDisconnectExpiredCert(false) {
+		disconnectCertExpired = certExpires
+	}
+
+	idleTimeout := authContext.Checker.AdjustClientIdleTimeout(time.Duration(0))
+	if disconnectCertExpired.IsZero() && idleTimeout == 0 {
+		return conn, nil
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	tc := &srv.TrackingReadConn{
+		Conn:   conn,
+		Clock:  clockwork.NewRealClock(),
+		Ctx:    ctx,
+		Cancel: cancel,
+	}
+
+	mon, err := srv.NewMonitor(srv.MonitorConfig{
+		DisconnectExpiredCert: disconnectCertExpired,
+		ClientIdleTimeout:     idleTimeout,
+		Conn:                  tc,
+		Tracker:               tc,
+		Context:               ctx,
+		TeleportUser:          authContext.User.GetName(),
+		Emitter:               s.cfg.AuthClient,
+		Entry:                 s.log,
+	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	go mon.Start()
+	return tc, nil
 }
 
 // proxyContext contains parameters for a database session being proxied.

@@ -804,7 +804,7 @@ type AccessChecker interface {
 	// option will be picked
 	AdjustClientIdleTimeout(ttl time.Duration) time.Duration
 
-	// AdjustDisconnectExpiredCert adjusts the value based on the role set
+	// DisconnectExpiredCert adjusts the value based on the role set
 	// the most restrictive option will be picked
 	AdjustDisconnectExpiredCert(disconnect bool) bool
 

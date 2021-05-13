@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/gravitational/teleport/lib/events"
@@ -114,11 +115,11 @@ func NewMonitor(cfg MonitorConfig) (*Monitor, error) {
 	}, nil
 }
 
-// Monitor moniotiors connection activity
+// Monitor monitors connection activity
 // and disconnects connections with expired certificates
 // or with periods of inactivity
 type Monitor struct {
-	// MonitorConfig is a connection monitori configuration
+	// MonitorConfig is a connection monitor configuration
 	MonitorConfig
 }
 
@@ -232,4 +233,42 @@ func (ch trackingChannel) Write(buf []byte) (int, error) {
 	n, err := ch.Channel.Write(buf)
 	ch.t.UpdateClientActivity()
 	return n, err
+}
+
+// TrackingReadConn allows to wrap net.Conn and keeps track of the latest conn read activity.
+type TrackingReadConn struct {
+	sync.RWMutex
+	net.Conn
+	Clock      clockwork.Clock
+	lastActive time.Time
+	Ctx        context.Context
+	Cancel     context.CancelFunc
+}
+
+// Read reads data from the connection.
+// Read can be made to time out and return an Error with Timeout() == true
+// after a fixed time limit; see SetDeadline and SetReadDeadline.
+func (t *TrackingReadConn) Read(b []byte) (int, error) {
+	n, err := t.Conn.Read(b)
+	t.UpdateClientActivity()
+	return n, err
+}
+
+func (t *TrackingReadConn) Close() error {
+	t.Cancel()
+	return t.Conn.Close()
+}
+
+// GetClientLastActive returns time when client was last active
+func (t *TrackingReadConn) GetClientLastActive() time.Time {
+	t.RLock()
+	defer t.RUnlock()
+	return t.lastActive
+}
+
+// UpdateClientActivity sets last recorded client activity
+func (t *TrackingReadConn) UpdateClientActivity() {
+	t.Lock()
+	defer t.Unlock()
+	t.lastActive = t.Clock.Now().UTC()
 }
