@@ -307,7 +307,7 @@ func NewServerContext(ctx context.Context, parent *sshutils.ConnectionContext, s
 		cancel:            cancel,
 	}
 
-	disconnectExpiredCert := identityContext.RoleSet.AdjustDisconnectExpiredCert(clusterConfig.GetDisconnectExpiredCert())
+	disconnectExpiredCert := identityContext.RoleSet.DisconnectExpiredCert()
 	if !identityContext.CertValidBefore.IsZero() && disconnectExpiredCert {
 		child.disconnectExpiredCert = identityContext.CertValidBefore
 	}

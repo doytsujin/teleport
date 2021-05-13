@@ -564,7 +564,7 @@ func (f *Forwarder) setupContext(ctx auth.Context, req *http.Request, isRemoteUs
 		authCtx.kubeCluster = kubeCluster
 	}
 
-	disconnectExpiredCert := roles.AdjustDisconnectExpiredCert(clusterConfig.GetDisconnectExpiredCert())
+	disconnectExpiredCert := roles.DisconnectExpiredCert()
 	if !certExpires.IsZero() && disconnectExpiredCert {
 		authCtx.disconnectExpiredCert = certExpires
 	}

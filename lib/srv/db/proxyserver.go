@@ -290,7 +290,7 @@ func (s *ProxyServer) monitorConn(ctx context.Context, conn net.Conn) (net.Conn,
 	certExpires := authContext.Identity.GetIdentity().Expires
 
 	var disconnectCertExpired time.Time
-	if !certExpires.IsZero() && checker.AdjustDisconnectExpiredCert(false) {
+	if !certExpires.IsZero() && checker.DisconnectExpiredCert() {
 		disconnectCertExpired = certExpires
 	}
 

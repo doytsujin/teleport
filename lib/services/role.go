@@ -806,7 +806,7 @@ type AccessChecker interface {
 
 	// DisconnectExpiredCert adjusts the value based on the role set
 	// the most restrictive option will be picked
-	AdjustDisconnectExpiredCert(disconnect bool) bool
+	DisconnectExpiredCert() bool
 
 	// CheckAgentForward checks if the role can request agent forward for this
 	// user.
@@ -1188,15 +1188,14 @@ func (set RoleSet) AdjustClientIdleTimeout(timeout time.Duration) time.Duration 
 	return timeout
 }
 
-// AdjustDisconnectExpiredCert adjusts the value based on the role set
-// the most restrictive option will be picked
-func (set RoleSet) AdjustDisconnectExpiredCert(disconnect bool) bool {
+// DisconnectExpiredCert returns the most restrictive DisconnectExpiredCert options from the role set.
+func (set RoleSet) DisconnectExpiredCert() bool {
 	for _, role := range set {
 		if role.GetOptions().DisconnectExpiredCert.Value() {
-			disconnect = true
+			return true
 		}
 	}
-	return disconnect
+	return false
 }
 
 // CheckKubeGroupsAndUsers check if role can login into kubernetes
