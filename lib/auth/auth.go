@@ -1875,6 +1875,10 @@ func (a *Server) SetAccessRequestState(ctx context.Context, params services.Acce
 	if err := a.DynamicAccessExt.SetAccessRequestState(ctx, params); err != nil {
 		return trace.Wrap(err)
 	}
+	req, err := a.getAccessRequestByID(ctx, params.RequestID)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	event := &events.AccessRequestCreate{
 		Metadata: events.Metadata{
 			Type: events.AccessRequestUpdateEvent,
@@ -1882,6 +1886,7 @@ func (a *Server) SetAccessRequestState(ctx context.Context, params services.Acce
 		},
 		ResourceMetadata: events.ResourceMetadata{
 			UpdatedBy: ClientUsername(ctx),
+			Expires:   req.GetAccessExpiry(),
 		},
 		RequestID:    params.RequestID,
 		RequestState: params.State.String(),
@@ -1901,11 +1906,25 @@ func (a *Server) SetAccessRequestState(ctx context.Context, params services.Acce
 			event.Annotations = annotations
 		}
 	}
-	err := a.emitter.EmitAuditEvent(a.closeCtx, event)
+	err = a.emitter.EmitAuditEvent(a.closeCtx, event)
 	if err != nil {
 		log.WithError(err).Warn("Failed to emit access request update event.")
 	}
 	return trace.Wrap(err)
+}
+
+func (a *Server) getAccessRequestByID(ctx context.Context, id string) (types.AccessRequest, error) {
+	req, err := a.DynamicAccessExt.GetAccessRequests(ctx, types.AccessRequestFilter{ID: id})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	if len(req) == 0 {
+		return nil, trace.BadParameter("access request not found")
+	}
+	if len(req) != 1 {
+		return nil, trace.BadParameter("invalid access request ID")
+	}
+	return req[0], nil
 }
 
 func (a *Server) SubmitAccessReview(ctx context.Context, params types.AccessReviewSubmission) (services.AccessRequest, error) {
