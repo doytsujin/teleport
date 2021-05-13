@@ -100,7 +100,7 @@ func (h *AuthHandlers) CreateIdentityContext(sconn *ssh.ServerConn) (IdentityCon
 	}
 	identity.RoleSet = roleSet
 	identity.Impersonator = certificate.Extensions[teleport.CertExtensionImpersonator]
-
+	identity.ActiveRequests = identity.Certificate.Extensions[teleport.CertExtensionTeleportActiveRequests]
 	return identity, nil
 }
 
