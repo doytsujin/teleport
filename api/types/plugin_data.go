@@ -42,16 +42,9 @@ type PluginData interface {
 // name of an access request).
 func NewPluginData(resourceName string, resourceKind string) (PluginData, error) {
 	data := PluginDataV3{
-		Kind:    KindPluginData,
-		Version: V3,
-		// If additional resource kinds become supported, make
-		// this a parameter.
 		SubKind: resourceKind,
 		Metadata: Metadata{
 			Name: resourceName,
-		},
-		Spec: PluginDataSpecV3{
-			Entries: make(map[string]*PluginDataEntry),
 		},
 	}
 	if err := data.CheckAndSetDefaults(); err != nil {
@@ -126,17 +119,29 @@ func (r *PluginDataV3) String() string {
 	return fmt.Sprintf("PluginData(kind=%s,resource=%s,entries=%d)", r.GetSubKind(), r.GetName(), len(r.Spec.Entries))
 }
 
+// setStaticFields sets static fields
+func (o *PluginDataV3) setStaticFields() {
+	o.Kind = KindPluginData
+	o.Version = V3
+}
+
 // CheckAndSetDefaults checks and sets default values for PluginData.
 func (r *PluginDataV3) CheckAndSetDefaults() error {
+	r.setStaticFields()
+	if r.Spec.Entries == nil {
+		r.Spec = PluginDataSpecV3{
+			Entries: make(map[string]*PluginDataEntry),
+		}
+	}
+
 	if err := r.Metadata.CheckAndSetDefaults(); err != nil {
 		return trace.Wrap(err)
 	}
-	if r.Version == "" {
-		r.Version = V3
-	}
+
 	if r.SubKind == "" {
 		return trace.BadParameter("plugin data missing subkind")
 	}
+
 	return nil
 }
 

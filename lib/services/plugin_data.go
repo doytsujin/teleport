@@ -22,8 +22,49 @@ import (
 	"github.com/gravitational/teleport/lib/utils"
 )
 
+// UnmarshalPluginData unmarshals the PluginData resource from JSON.
+func UnmarshalPluginData(bytes []byte, opts ...MarshalOption) (PluginData, error) {
+	if len(bytes) == 0 {
+		return nil, trace.BadParameter("missing resource data")
+	}
+
+	cfg, err := CollectOptions(opts)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	var h ResourceHeader
+	if err = utils.FastUnmarshal(bytes, &h); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	switch h.Version {
+	case V3:
+		var data PluginDataV3
+		if err := utils.FastUnmarshal(bytes, &data); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		if err := data.CheckAndSetDefaults(); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		if cfg.ID != 0 {
+			data.SetResourceID(cfg.ID)
+		}
+		if !cfg.Expires.IsZero() {
+			data.SetExpiry(cfg.Expires)
+		}
+		return &data, nil
+	default:
+		return nil, trace.BadParameter("plugin data resource version %v is not supported", h.Version)
+	}
+}
+
 //MarshalPluginData marshals the PluginData resource to JSON.
 func MarshalPluginData(pluginData PluginData, opts ...MarshalOption) ([]byte, error) {
+	if err := pluginData.CheckAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -31,9 +72,6 @@ func MarshalPluginData(pluginData PluginData, opts ...MarshalOption) ([]byte, er
 
 	switch pluginData := pluginData.(type) {
 	case *PluginDataV3:
-		if version := pluginData.GetVersion(); version != V3 {
-			return nil, trace.BadParameter("mismatched plugin data version %v and type %T", version, pluginData)
-		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races
@@ -45,26 +83,4 @@ func MarshalPluginData(pluginData PluginData, opts ...MarshalOption) ([]byte, er
 	default:
 		return nil, trace.BadParameter("unrecognized plugin data type: %T", pluginData)
 	}
-}
-
-// UnmarshalPluginData unmarshals the PluginData resource from JSON.
-func UnmarshalPluginData(raw []byte, opts ...MarshalOption) (PluginData, error) {
-	cfg, err := CollectOptions(opts)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var data PluginDataV3
-	if err := utils.FastUnmarshal(raw, &data); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := data.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if cfg.ID != 0 {
-		data.SetResourceID(cfg.ID)
-	}
-	if !cfg.Expires.IsZero() {
-		data.SetExpiry(cfg.Expires)
-	}
-	return &data, nil
 }
