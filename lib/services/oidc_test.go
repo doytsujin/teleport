@@ -29,7 +29,7 @@ import (
 // Verify that an OIDC connector with no mappings produces no roles.
 func TestOIDCRoleMappingEmpty(t *testing.T) {
 	// create a connector
-	oidcConnector, err := NewOIDCConnector("example", OIDCConnectorSpecV2{
+	oidcConnector := NewOIDCConnector("example", OIDCConnectorSpecV2{
 		IssuerURL:    "https://www.exmaple.com",
 		ClientID:     "example-client-id",
 		ClientSecret: "example-client-secret",
@@ -37,7 +37,6 @@ func TestOIDCRoleMappingEmpty(t *testing.T) {
 		Display:      "sign in with example.com",
 		Scope:        []string{"foo", "bar"},
 	})
-	require.NoError(t, err)
 
 	// create some claims
 	var claims = make(jose.Claims)
@@ -56,7 +55,7 @@ func TestOIDCRoleMappingEmpty(t *testing.T) {
 // TestOIDCRoleMapping verifies basic mapping from OIDC claims to roles.
 func TestOIDCRoleMapping(t *testing.T) {
 	// create a connector
-	oidcConnector, err := NewOIDCConnector("example", OIDCConnectorSpecV2{
+	oidcConnector := NewOIDCConnector("example", OIDCConnectorSpecV2{
 		IssuerURL:    "https://www.exmaple.com",
 		ClientID:     "example-client-id",
 		ClientSecret: "example-client-secret",
@@ -71,7 +70,6 @@ func TestOIDCRoleMapping(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, err)
 
 	// create some claims
 	var claims = make(jose.Claims)

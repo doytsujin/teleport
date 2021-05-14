@@ -28,31 +28,18 @@ func UnmarshalResetPasswordTokenSecrets(bytes []byte, opts ...MarshalOption) (Re
 		return nil, trace.BadParameter("missing resource data")
 	}
 
-	var h ResourceHeader
-	if err := utils.FastUnmarshal(bytes, &h); err != nil {
+	var secrets ResetPasswordTokenSecretsV3
+	if err := utils.FastUnmarshal(bytes, &secrets); err != nil {
+		return nil, trace.BadParameter(err.Error())
+	}
+	if err := secrets.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	switch h.Version {
-	case V3:
-		var secrets ResetPasswordTokenSecretsV3
-		if err := utils.FastUnmarshal(bytes, &secrets); err != nil {
-			return nil, trace.BadParameter(err.Error())
-		}
-		if err := secrets.CheckAndSetDefaults(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return &secrets, nil
-	default:
-		return nil, trace.BadParameter("reset password token secrets resource version %v is not supported", h.Version)
-	}
-
+	return &secrets, nil
 }
 
 // MarshalResetPasswordTokenSecrets marshals the ResetPasswordTokenSecrets resource to JSON.
 func MarshalResetPasswordTokenSecrets(secrets ResetPasswordTokenSecrets, opts ...MarshalOption) ([]byte, error) {
-	if err := secrets.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
 	return utils.FastMarshal(secrets)
 }

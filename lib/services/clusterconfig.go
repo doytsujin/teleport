@@ -71,6 +71,8 @@ func ShouldUploadSessions(a AuditConfig) bool {
 
 // UnmarshalClusterConfig unmarshals the ClusterConfig resource from JSON.
 func UnmarshalClusterConfig(bytes []byte, opts ...MarshalOption) (ClusterConfig, error) {
+	var clusterConfig ClusterConfigV3
+
 	if len(bytes) == 0 {
 		return nil, trace.BadParameter("missing resource data")
 	}
@@ -80,38 +82,26 @@ func UnmarshalClusterConfig(bytes []byte, opts ...MarshalOption) (ClusterConfig,
 		return nil, trace.Wrap(err)
 	}
 
-	var h ResourceHeader
-	if err = utils.FastUnmarshal(bytes, &h); err != nil {
+	if err := utils.FastUnmarshal(bytes, &clusterConfig); err != nil {
+		return nil, trace.BadParameter(err.Error())
+	}
+
+	err = clusterConfig.CheckAndSetDefaults()
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	switch h.Version {
-	case V3:
-		var clusterConfig ClusterConfigV3
-		if err := utils.FastUnmarshal(bytes, &clusterConfig); err != nil {
-			return nil, trace.BadParameter(err.Error())
-		}
-		if err := clusterConfig.CheckAndSetDefaults(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if cfg.ID != 0 {
-			clusterConfig.SetResourceID(cfg.ID)
-		}
-		if !cfg.Expires.IsZero() {
-			clusterConfig.SetExpiry(cfg.Expires)
-		}
-		return &clusterConfig, nil
-	default:
-		return nil, trace.BadParameter("cert authority resource version %v is not supported", h.Version)
+	if cfg.ID != 0 {
+		clusterConfig.SetResourceID(cfg.ID)
 	}
+	if !cfg.Expires.IsZero() {
+		clusterConfig.SetExpiry(cfg.Expires)
+	}
+	return &clusterConfig, nil
 }
 
 // MarshalClusterConfig marshals the ClusterConfig resource to JSON.
 func MarshalClusterConfig(clusterConfig ClusterConfig, opts ...MarshalOption) ([]byte, error) {
-	if err := clusterConfig.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -119,6 +109,9 @@ func MarshalClusterConfig(clusterConfig ClusterConfig, opts ...MarshalOption) ([
 
 	switch clusterConfig := clusterConfig.(type) {
 	case *ClusterConfigV3:
+		if version := clusterConfig.GetVersion(); version != V3 {
+			return nil, trace.BadParameter("mismatched cluster config version %v and type %T", version, clusterConfig)
+		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races

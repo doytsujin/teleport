@@ -17,8 +17,6 @@ limitations under the License.
 package services
 
 import (
-	"encoding/json"
-
 	"github.com/gravitational/trace"
 
 	"github.com/gravitational/teleport/lib/utils"
@@ -30,33 +28,25 @@ func UnmarshalLicense(bytes []byte) (License, error) {
 		return nil, trace.BadParameter("missing resource data")
 	}
 
-	var h ResourceHeader
-	if err := json.Unmarshal(bytes, &h); err != nil {
-		return nil, trace.Wrap(err)
+	var license LicenseV3
+	err := utils.FastUnmarshal(bytes, &license)
+	if err != nil {
+		return nil, trace.BadParameter(err.Error())
 	}
 
-	switch h.Version {
-	case V3:
-		var license LicenseV3
-		if err := utils.FastUnmarshal(bytes, &license); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if err := license.CheckAndSetDefaults(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return &license, nil
-	default:
-		return nil, trace.BadParameter(
-			"License resource version %q is not supported", h.Version)
+	if license.Version != V3 {
+		return nil, trace.BadParameter("unsupported version %v, expected version %v", license.Version, V3)
 	}
-}
 
-// MarshalLicense marshals the License resource to JSON.
-func MarshalLicense(license License, opts ...MarshalOption) ([]byte, error) {
 	if err := license.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
+	return &license, nil
+}
+
+// MarshalLicense marshals the License resource to JSON.
+func MarshalLicense(license License, opts ...MarshalOption) ([]byte, error) {
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -64,6 +54,9 @@ func MarshalLicense(license License, opts ...MarshalOption) ([]byte, error) {
 
 	switch license := license.(type) {
 	case *LicenseV3:
+		if version := license.GetVersion(); version != V3 {
+			return nil, trace.BadParameter("mismatched license version %v and type %T", version, license)
+		}
 		if !cfg.PreserveResourceID {
 			// avoid modifying the original object
 			// to prevent unexpected data races

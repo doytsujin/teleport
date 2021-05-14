@@ -2092,10 +2092,10 @@ func TestBoolOptions(t *testing.T) {
 }
 
 func TestCheckAccessToDatabase(t *testing.T) {
-	dbStage, _ := types.NewDatabaseServerV3("stage",
+	dbStage := types.NewDatabaseServerV3("stage",
 		map[string]string{"env": "stage"},
 		types.DatabaseServerSpecV3{})
-	dbProd, _ := types.NewDatabaseServerV3("prod",
+	dbProd := types.NewDatabaseServerV3("prod",
 		map[string]string{"env": "prod"},
 		types.DatabaseServerSpecV3{})
 	roleDevStage := &RoleV3{
@@ -2249,10 +2249,10 @@ func TestCheckAccessToDatabase(t *testing.T) {
 }
 
 func TestCheckAccessToDatabaseUser(t *testing.T) {
-	dbStage, _ := types.NewDatabaseServerV3("stage",
+	dbStage := types.NewDatabaseServerV3("stage",
 		map[string]string{"env": "stage"},
 		types.DatabaseServerSpecV3{})
-	dbProd, _ := types.NewDatabaseServerV3("prod",
+	dbProd := types.NewDatabaseServerV3("prod",
 		map[string]string{"env": "prod"},
 		types.DatabaseServerSpecV3{})
 	roleDevStage := &RoleV3{
@@ -2417,20 +2417,20 @@ func TestCheckDatabaseNamesAndUsers(t *testing.T) {
 }
 
 func TestCheckAccessToDatabaseService(t *testing.T) {
-	dbNoLabels, _ := types.NewDatabaseServerV3("test",
+	dbNoLabels := types.NewDatabaseServerV3("test",
 		nil,
 		types.DatabaseServerSpecV3{})
-	dbStage, _ := types.NewDatabaseServerV3("stage",
+	dbStage := types.NewDatabaseServerV3("stage",
 		map[string]string{"env": "stage"},
 		types.DatabaseServerSpecV3{
 			DynamicLabels: map[string]CommandLabelV2{"arch": {Result: "x86"}},
 		})
-	dbStage2, _ := types.NewDatabaseServerV3("stage2",
+	dbStage2 := types.NewDatabaseServerV3("stage2",
 		map[string]string{"env": "stage"},
 		types.DatabaseServerSpecV3{
 			DynamicLabels: map[string]CommandLabelV2{"arch": {Result: "amd64"}},
 		})
-	dbProd, _ := types.NewDatabaseServerV3("prod",
+	dbProd := types.NewDatabaseServerV3("prod",
 		map[string]string{"env": "prod"},
 		types.DatabaseServerSpecV3{})
 	roleAdmin := &RoleV3{

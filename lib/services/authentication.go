@@ -95,6 +95,8 @@ func validateTOTPDevice(d *types.TOTPDevice) error {
 
 // UnmarshalAuthPreference unmarshals the AuthPreference resource from JSON.
 func UnmarshalAuthPreference(bytes []byte, opts ...MarshalOption) (AuthPreference, error) {
+	var authPreference AuthPreferenceV2
+
 	if len(bytes) == 0 {
 		return nil, trace.BadParameter("missing resource data")
 	}
@@ -104,37 +106,22 @@ func UnmarshalAuthPreference(bytes []byte, opts ...MarshalOption) (AuthPreferenc
 		return nil, trace.Wrap(err)
 	}
 
-	var h ResourceHeader
-	if err = utils.FastUnmarshal(bytes, &h); err != nil {
-		return nil, trace.Wrap(err)
+	if err := utils.FastUnmarshal(bytes, &authPreference); err != nil {
+		return nil, trace.BadParameter(err.Error())
 	}
-
-	switch h.Version {
-	case V2:
-		var authPreference AuthPreferenceV2
-		if err := utils.FastUnmarshal(bytes, &authPreference); err != nil {
-			return nil, trace.BadParameter(err.Error())
-		}
-		if err := authPreference.CheckAndSetDefaults(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if cfg.ID != 0 {
-			authPreference.SetResourceID(cfg.ID)
-		}
-		if !cfg.Expires.IsZero() {
-			authPreference.SetExpiry(cfg.Expires)
-		}
-		return &authPreference, nil
-	default:
-		return nil, trace.BadParameter("access request resource version %v is not supported", h.Version)
-	}
-
-}
-
-// MarshalAuthPreference marshals the AuthPreference resource to JSON.
-func MarshalAuthPreference(authPreference AuthPreference, opts ...MarshalOption) ([]byte, error) {
 	if err := authPreference.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return json.Marshal(authPreference)
+	if cfg.ID != 0 {
+		authPreference.SetResourceID(cfg.ID)
+	}
+	if !cfg.Expires.IsZero() {
+		authPreference.SetExpiry(cfg.Expires)
+	}
+	return &authPreference, nil
+}
+
+// MarshalAuthPreference marshals the AuthPreference resource to JSON.
+func MarshalAuthPreference(c AuthPreference, opts ...MarshalOption) ([]byte, error) {
+	return json.Marshal(c)
 }

@@ -24,39 +24,34 @@ import (
 
 // UnmarshalRemoteCluster unmarshals the RemoteCluster resource from JSON.
 func UnmarshalRemoteCluster(bytes []byte, opts ...MarshalOption) (RemoteCluster, error) {
-	if len(bytes) == 0 {
-		return nil, trace.BadParameter("missing resource data")
-	}
-
 	cfg, err := CollectOptions(opts)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	var h ResourceHeader
-	if err = utils.FastUnmarshal(bytes, &h); err != nil {
+	var cluster RemoteClusterV3
+
+	if len(bytes) == 0 {
+		return nil, trace.BadParameter("missing resource data")
+	}
+
+	if err := utils.FastUnmarshal(bytes, &cluster); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	switch h.Version {
-	case V3:
-		var cluster RemoteClusterV3
-		if err := utils.FastUnmarshal(bytes, &cluster); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if err = cluster.CheckAndSetDefaults(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if cfg.ID != 0 {
-			cluster.SetResourceID(cfg.ID)
-		}
-		if !cfg.Expires.IsZero() {
-			cluster.SetExpiry(cfg.Expires)
-		}
-		return &cluster, nil
-	default:
-		return nil, trace.BadParameter("remote cluster resource version %v is not supported", h.Version)
+	err = cluster.CheckAndSetDefaults()
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
+
+	if cfg.ID != 0 {
+		cluster.SetResourceID(cfg.ID)
+	}
+	if !cfg.Expires.IsZero() {
+		cluster.SetExpiry(cfg.Expires)
+	}
+
+	return &cluster, nil
 }
 
 // MarshalRemoteCluster marshals the RemoteCluster resource to JSON.

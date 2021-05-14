@@ -43,7 +43,7 @@ func (g *GithubSuite) TestUnmarshal(c *check.C) {
 }}`)
 	connector, err := UnmarshalGithubConnector(data)
 	c.Assert(err, check.IsNil)
-	expected, err := NewGithubConnector("github", GithubConnectorSpecV3{
+	expected := NewGithubConnector("github", GithubConnectorSpecV3{
 		ClientID:     "aaa",
 		ClientSecret: "bbb",
 		RedirectURL:  "https://localhost:3080/v1/webapi/github/callback",
@@ -56,12 +56,11 @@ func (g *GithubSuite) TestUnmarshal(c *check.C) {
 			},
 		},
 	})
-	c.Assert(err, check.IsNil)
 	c.Assert(expected, check.DeepEquals, connector)
 }
 
 func (g *GithubSuite) TestMapClaims(c *check.C) {
-	connector, err := NewGithubConnector("github", GithubConnectorSpecV3{
+	connector := NewGithubConnector("github", GithubConnectorSpecV3{
 		ClientID:     "aaa",
 		ClientSecret: "bbb",
 		RedirectURL:  "https://localhost:3080/v1/webapi/github/callback",
@@ -82,7 +81,6 @@ func (g *GithubSuite) TestMapClaims(c *check.C) {
 			},
 		},
 	})
-	c.Assert(err, check.IsNil)
 	logins, kubeGroups, kubeUsers := connector.MapClaims(GithubClaims{
 		OrganizationToTeams: map[string][]string{
 			"gravitational": {"admins"},

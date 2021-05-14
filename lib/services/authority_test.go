@@ -31,7 +31,7 @@ func TestCertPoolFromCertAuthorities(t *testing.T) {
 	// CA for cluster1 with 1 key pair.
 	key, cert, err := tlsca.GenerateSelfSignedCA(pkix.Name{CommonName: "cluster1"}, nil, time.Minute)
 	require.NoError(t, err)
-	ca1, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
+	ca1 := types.NewCertAuthority(types.CertAuthoritySpecV2{
 		Type:        types.HostCA,
 		ClusterName: "cluster1",
 		TLSKeyPairs: []types.TLSKeyPair{{
@@ -39,13 +39,12 @@ func TestCertPoolFromCertAuthorities(t *testing.T) {
 			Key:  key,
 		}},
 	})
-	require.NoError(t, err)
 	// CA for cluster2 with 2 key pairs.
 	key, cert, err = tlsca.GenerateSelfSignedCA(pkix.Name{CommonName: "cluster2"}, nil, time.Minute)
 	require.NoError(t, err)
 	key2, cert2, err := tlsca.GenerateSelfSignedCA(pkix.Name{CommonName: "cluster2"}, nil, time.Minute)
 	require.NoError(t, err)
-	ca2, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
+	ca2 := types.NewCertAuthority(types.CertAuthoritySpecV2{
 		Type:        types.HostCA,
 		ClusterName: "cluster2",
 		TLSKeyPairs: []types.TLSKeyPair{
@@ -59,7 +58,6 @@ func TestCertPoolFromCertAuthorities(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, err)
 
 	t.Run("ca1 with 1 cert", func(t *testing.T) {
 		pool, err := CertPoolFromCertAuthorities([]CertAuthority{ca1})
@@ -83,7 +81,7 @@ func TestCertAuthorityEquivalence(t *testing.T) {
 	// CA for cluster1 with 1 key pair.
 	key, cert, err := tlsca.GenerateSelfSignedCA(pkix.Name{CommonName: "cluster1"}, nil, time.Minute)
 	require.NoError(t, err)
-	ca1, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
+	ca1 := types.NewCertAuthority(types.CertAuthoritySpecV2{
 		Type:        types.HostCA,
 		ClusterName: "cluster1",
 		TLSKeyPairs: []types.TLSKeyPair{{
@@ -91,13 +89,12 @@ func TestCertAuthorityEquivalence(t *testing.T) {
 			Key:  key,
 		}},
 	})
-	require.NoError(t, err)
 	// CA for cluster2 with 2 key pairs.
 	key, cert, err = tlsca.GenerateSelfSignedCA(pkix.Name{CommonName: "cluster2"}, nil, time.Minute)
 	require.NoError(t, err)
 	key2, cert2, err := tlsca.GenerateSelfSignedCA(pkix.Name{CommonName: "cluster2"}, nil, time.Minute)
 	require.NoError(t, err)
-	ca2, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
+	ca2 := types.NewCertAuthority(types.CertAuthoritySpecV2{
 		Type:        types.HostCA,
 		ClusterName: "cluster2",
 		TLSKeyPairs: []types.TLSKeyPair{
@@ -111,7 +108,6 @@ func TestCertAuthorityEquivalence(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, err)
 
 	// different CAs are different
 	require.False(t, CertAuthoritiesEquivalent(ca1, ca2))
