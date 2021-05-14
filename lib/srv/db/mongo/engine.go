@@ -154,6 +154,8 @@ func (e *Engine) receiveFromClient(clientConn, serverConn net.Conn, clientErrCh 
 			for _, document := range msg.Documents {
 				e.Audit.OnQuery(e.Context, sessionCtx, document.String())
 			}
+		case *protocol.MessageUnknown:
+			log.Debugf("=== %v", msg)
 		}
 	}
 }

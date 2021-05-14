@@ -363,10 +363,8 @@ func Run(args []string, opts ...cliOption) error {
 	dbConfig := db.Command("config", "Print database connection information. Useful when configuring GUI clients.")
 	dbConfig.Flag("db", "Print information for the specified database.").StringVar(&cf.DatabaseService)
 	dbConfig.Flag("format", "Print format.").StringVar(&cf.Format)
-
-	// Database connect commands.
-	mongo := app.Command("mongo", "Connect to MongoDB database.")
-	mongo.Arg("db", "Optional service name to connect to.").StringVar(&cf.DatabaseService)
+	dbMongo := db.Command("mongo", "Connect to a MongoDB database.")
+	dbMongo.Arg("db", "Optional service name to connect to.").StringVar(&cf.DatabaseService)
 
 	// join
 	join := app.Command("join", "Join the active SSH session")
@@ -584,8 +582,8 @@ func Run(args []string, opts ...cliOption) error {
 		err = onDatabaseEnv(&cf)
 	case dbConfig.FullCommand():
 		err = onDatabaseConfig(&cf)
-	case mongo.FullCommand():
-		err = onMongo(&cf)
+	case dbMongo.FullCommand():
+		err = onDatabaseMongo(&cf)
 	case environment.FullCommand():
 		err = onEnvironment(&cf)
 	case mfa.ls.FullCommand():

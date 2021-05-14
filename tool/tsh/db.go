@@ -200,15 +200,12 @@ func onDatabaseLogout(cf *CLIConf) error {
 
 func databaseLogout(tc *client.TeleportClient, db tlsca.RouteToDatabase) error {
 	// First remove respective connection profile.
-	switch db.Protocol {
-	case defaults.ProtocolPostgres, defaults.ProtocolMySQL:
-		err := dbprofile.Delete(tc, db)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+	err := dbprofile.Delete(tc, db)
+	if err != nil {
+		return trace.Wrap(err)
 	}
 	// Then remove the certificate from the keystore.
-	err := tc.LogoutDatabase(db.ServiceName)
+	err = tc.LogoutDatabase(db.ServiceName)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -235,8 +232,8 @@ func onDatabaseEnv(cf *CLIConf) error {
 	return nil
 }
 
-// onMongo implements "tsh mongo" command.
-func onMongo(cf *CLIConf) error {
+// onDatabaseMongo implements "tsh db mongo" command.
+func onDatabaseMongo(cf *CLIConf) error {
 	tc, err := makeClient(cf, false)
 	if err != nil {
 		return trace.Wrap(err)

@@ -285,7 +285,13 @@ func (proxy *ProxyClient) reissueUserCerts(ctx context.Context, cachePolicy Cert
 		// Database certs have to be requested with CertUsage All because
 		// pre-7.0 servers do not accept usage-restricted certificates.
 		if params.RouteToDatabase.ServiceName != "" {
-			key.DBTLSCerts[params.RouteToDatabase.ServiceName] = certs.TLS
+			switch params.RouteToDatabase.Protocol {
+			case defaults.ProtocolMongo:
+				// MongoDB expects certificate and key pair in the same pem file.
+				key.DBTLSCerts[params.RouteToDatabase.ServiceName] = append(certs.TLS, key.Priv...)
+			default:
+				key.DBTLSCerts[params.RouteToDatabase.ServiceName] = certs.TLS
+			}
 		}
 
 	case proto.UserCertsRequest_SSH:
